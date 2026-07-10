@@ -5,8 +5,9 @@ IGNIS.AI is an advanced, full-stack predictive dashboard designed to monitor and
 ## 🌟 Key Features
 
 - **Global Alerts Center**: Real-time notifications for CRITICAL and HIGH fire risks.
-- **GIS Command Center**: Interactive 2D mapping (Leaflet) and an advanced 3D Digital Twin (React Three Fiber) with procedural topography and dynamic fire/smoke particle effects.
-- **AI Risk Prediction**: Powered by a standalone Python FastAPI microservice that utilizes state-of-the-art conversational AI models (Pollinations/Hugging Face) for context-aware risk analysis.
+- **GIS Command Center**: Interactive mapping featuring MapLibre GL for high-fidelity 3D satellite terrain and environmental visualizations.
+- **AI Risk & Insight Generation**: Powered by a Python FastAPI microservice utilizing state-of-the-art AI models (Hugging Face) to deliver continuous risk scoring, detailed natural language insights, and SHAP explainability.
+- **Automated PDF Reporting**: Instantly generate and export comprehensive risk reports containing real-time history charts and AI feature importance breakdowns.
 - **Live Telemetry & Weather**: Simulates or fetches live telemetry (Temperature, Humidity, Wind Speed, etc.) to assess environmental danger.
 
 ## 🛠 Tech Stack
