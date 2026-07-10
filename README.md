@@ -71,10 +71,3 @@ You will need three terminal windows:
 ## 📦 Database Schema
 
 The database relies on Supabase. Execute `backend/database.sql` directly into your Supabase SQL Editor to initialize all necessary tables (`forest_regions`, `alerts`, `fire_hotspots`, etc.).
-
-## 🔒 Environment Variables
-
-Ensure `.env` files are created in both the `backend` and `backend/ai` directories. Do not commit `.env` files to source control!
-
-## 📜 License
-MIT License
