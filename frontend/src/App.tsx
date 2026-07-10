@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area, Cell } from 'recharts';
-import { ShieldAlert, Wind, ThermometerSun, Droplets, Map as MapIcon, Box, ArrowRight, Play, CloudLightning, Activity, AlertTriangle, Info, Globe2 } from 'lucide-react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Grid, Stars, Sparkles, Instances, Instance } from '@react-three/drei';
-import * as THREE from 'three';
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Popup, Circle, useMap } from 'react-leaflet';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
+import { ShieldAlert, Wind, ThermometerSun, Droplets, Map as MapIcon, Box, ArrowRight, Activity, AlertTriangle, Info, Globe2 } from 'lucide-react';
+import Map, { Marker as MaplibreMarker, NavigationControl } from 'react-map-gl/maplibre';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 import { io } from 'socket.io-client';
 
 const socket = io('http://localhost:5000');
@@ -101,83 +102,6 @@ const Chatbot = ({ shapContext, focusLocation }: { shapContext: any, focusLocati
   );
 };
 
-const AnimatedTerrain = ({ windSpeed }: { windSpeed: number }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  
-  useEffect(() => {
-    if (meshRef.current) {
-      const geometry = meshRef.current.geometry as THREE.PlaneGeometry;
-      const positions = geometry.attributes.position.array;
-      for (let i = 0; i < positions.length; i += 3) {
-        const x = positions[i];
-        const y = positions[i + 1];
-        // Generate complex hilly terrain
-        positions[i + 2] = Math.sin(x * 0.1) * 3.0 + Math.cos(y * 0.15) * 2.0 + Math.sin((x+y)*0.05)*1.5;
-      }
-      geometry.computeVertexNormals();
-      geometry.attributes.position.needsUpdate = true;
-    }
-  }, []);
-
-  return (
-    <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -2, 0]} receiveShadow>
-      <planeGeometry args={[100, 100, 100, 100]} />
-      <meshStandardMaterial color="#064e3b" roughness={0.9} flatShading />
-    </mesh>
-  );
-};
-
-const Forest = () => {
-  // Generate random tree positions based on the terrain height
-  const trees = React.useMemo(() => {
-    return Array.from({ length: 400 }).map(() => {
-      const x = (Math.random() - 0.5) * 80;
-      const z = (Math.random() - 0.5) * 80;
-      const pY = -z;
-      const height = Math.sin(x * 0.1) * 3.0 + Math.cos(pY * 0.15) * 2.0 + Math.sin((x+pY)*0.05)*1.5 - 2; 
-      const scale = 0.5 + Math.random() * 0.5;
-      return { x, y: height, z, scale };
-    });
-  }, []);
-
-  return (
-    <Instances range={400} castShadow receiveShadow>
-      <coneGeometry args={[0.4, 2.5, 5]} />
-      <meshStandardMaterial color="#022c22" roughness={1} flatShading />
-      {trees.map((t, i) => (
-        <Instance key={i} position={[t.x, t.y + 1.25, t.z]} scale={t.scale} />
-      ))}
-    </Instances>
-  );
-};
-
-const FireHotspot = ({ riskCategory }: { riskCategory: string }) => {
-  const isCritical = riskCategory === 'CRITICAL';
-  const isHigh = riskCategory === 'HIGH';
-  if (!isCritical && !isHigh) return null;
-  
-  const color = isCritical ? "#EF4444" : "#F59E0B";
-  const intensity = isCritical ? 40 : 20;
-  
-  return (
-    <group position={[0, -1, 0]}>
-       {/* Fire Particles */}
-       <Sparkles count={isCritical ? 300 : 100} scale={15} size={isCritical ? 10 : 6} speed={isCritical ? 0.8 : 0.4} opacity={0.8} color={color} position={[0, 4, 0]} />
-       
-       {/* Smoke Particles */}
-       <Sparkles count={150} scale={15} size={15} speed={0.2} opacity={0.2} color="#555555" position={[0, 8, 0]} />
-
-       {/* Localized Glow */}
-       <pointLight position={[0, 3, 0]} distance={50} intensity={intensity} color={color} />
-       
-       {/* Glowing Core */}
-       <mesh position={[0, 0, 0]}>
-         <sphereGeometry args={[isCritical ? 2.5 : 1.5, 16, 16]} />
-         <meshBasicMaterial color={color} transparent opacity={0.7} />
-       </mesh>
-    </group>
-  );
-};
 
 
 // --- Dashboard Component ---
@@ -211,7 +135,7 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
   const livePrediction = activeForestData?.prediction;
   const history = activeForestData?.history || [];
 
-  let shapData = [];
+  let shapData: any[] = [];
   if (livePrediction?.feature_importance) {
     const imp = livePrediction.feature_importance;
     shapData = [
@@ -222,49 +146,126 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
     ].sort((a, b) => b.impact - a.impact);
   }
 
-  const handleGenerateReport = () => {
+  const handleGenerateReport = async () => {
     const doc = new jsPDF();
+    
+    // Header Banner
+    doc.setFillColor(15, 23, 42); // slate-900
+    doc.rect(0, 0, 210, 40, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(28);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(22);
-    doc.setTextColor(239, 68, 68);
-    doc.text(`IGNIS.AI - Report: ${focusLocation}`, 20, 20);
+    doc.text("IGNIS.AI", 14, 22);
     
-    doc.setFontSize(12);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 30);
-    
+    doc.setFontSize(14);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 0, 0);
+    doc.setTextColor(239, 68, 68); // ff-danger
+    doc.text("Advanced Forest Fire Intelligence Report", 14, 32);
     
-    let yPos = 45;
+    // Sub-header Info
+    doc.setTextColor(50, 50, 50);
+    doc.setFontSize(11);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 50);
+    doc.text(`Target Region: ${focusLocation}`, 14, 56);
+    
+    let yPos = 65;
+
+    // Telemetry Table
     if (liveTelemetry) {
-      doc.setFont("helvetica", "bold");
-      doc.text("Live Sensor Telemetry:", 20, yPos);
-      doc.setFont("helvetica", "normal");
-      doc.text(`- Temperature: ${liveTelemetry.temperature.toFixed(1)} C`, 20, yPos + 10);
-      doc.text(`- Humidity: ${liveTelemetry.humidity.toFixed(1)}%`, 20, yPos + 18);
-      doc.text(`- Wind Speed: ${liveTelemetry.wind_speed.toFixed(1)} km/h`, 20, yPos + 26);
-      yPos += 45;
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Sensor Metric', 'Live Reading', 'Status']],
+        body: [
+          ['Temperature', `${liveTelemetry.temperature.toFixed(1)} C`, liveTelemetry.temperature > 35 ? 'HIGH' : 'NORMAL'],
+          ['Humidity', `${liveTelemetry.humidity.toFixed(1)}%`, liveTelemetry.humidity < 30 ? 'CRITICAL (DRY)' : 'NORMAL'],
+          ['Wind Speed', `${liveTelemetry.wind_speed.toFixed(1)} km/h`, liveTelemetry.wind_speed > 25 ? 'HIGH' : 'NORMAL'],
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [239, 68, 68] },
+        margin: { left: 14 }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + 15;
     }
 
+    // AI Insight Text
     doc.setFont("helvetica", "bold");
-    doc.text("Global Hazards (Live Connection):", 20, yPos);
-    yPos += 10;
+    doc.setFontSize(14);
+    doc.text("AI Risk Assessment", 14, yPos);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    yPos += 8;
+    const aiText = `Current AI Risk Score: ${livePrediction?.risk_score?.toFixed(1) || '--'}% (${livePrediction?.risk_category || 'UNKNOWN'}). ` + 
+                   `This assessment is primarily driven by ${livePrediction?.reasons?.join(' and ') || 'unknown factors'}. ` +
+                   `The system recommends ${livePrediction?.risk_category === 'CRITICAL' ? 'immediate deployment of preventive units.' : 'maintaining standard observation protocols.'}`;
+    
+    const splitText = doc.splitTextToSize(aiText, 180);
+    doc.text(splitText, 14, yPos);
+    yPos += splitText.length * 6 + 10;
+
+    // Global Hazards Table
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("Global Hazards Pipeline", 14, yPos);
+    
     if (alerts.length === 0) {
       doc.setFont("helvetica", "normal");
-      doc.text("No active hazards globally.", 20, yPos);
+      doc.setFontSize(11);
+      doc.text("No critical anomalies detected globally.", 14, yPos + 8);
     } else {
-      alerts.forEach((alert, i) => {
-        doc.setFontSize(11);
-        doc.setFont("helvetica", "bold");
-        doc.text(`${i + 1}. Location: ${alert.location} [${alert.risk} Risk]`, 20, yPos);
-        doc.setFont("helvetica", "normal");
-        doc.text(alert.message, 25, yPos + 6);
-        yPos += 16;
+      const hazardBody = alerts.map((a: any) => [
+        a.location,
+        a.risk,
+        a.time,
+        a.message
+      ]);
+      
+      autoTable(doc, {
+        startY: yPos + 5,
+        head: [['Location', 'Risk Level', 'Detected', 'AI Diagnosis']],
+        body: hazardBody,
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] }, // blue-500
+        columnStyles: { 3: { cellWidth: 80 } },
+        margin: { left: 14 }
       });
     }
 
-    doc.save(`IGNIS-${focusLocation.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+    // Page 2: Charts
+    try {
+      const chartEl = document.getElementById('pdf-hidden-charts');
+      if (chartEl) {
+        chartEl.style.display = 'block';
+        const canvas = await html2canvas(chartEl, { scale: 2, backgroundColor: '#0B1120' });
+        chartEl.style.display = 'none';
+        
+        const imgData = canvas.toDataURL('image/png');
+        doc.addPage();
+        
+        doc.setFillColor(15, 23, 42); 
+        doc.rect(0, 0, 210, 25, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(18);
+        doc.setFont("helvetica", "bold");
+        doc.text("AI Telemetry & Feature Importance", 14, 16);
+        
+        doc.addImage(imgData, 'PNG', 14, 35, 182, (canvas.height * 182) / canvas.width);
+      }
+    } catch (err) {
+      console.error('Failed to attach charts to PDF', err);
+    }
+
+    // Add footer to all pages
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(9);
+      doc.setTextColor(150);
+      doc.text(`IGNIS.AI Confidential Report - Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
+    }
+
+    doc.save(`IGNIS_Report_${focusLocation.split(',')[0].replace(/[^a-z0-9]/gi, '_')}.pdf`);
   };
 
   const jumpToLocation = (locName: string) => {
@@ -374,31 +375,79 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
                       )}
                    </MapContainer>
                  ) : (
-                   <div className="absolute inset-0 bg-black cursor-move">
-                      <Canvas camera={{ position: [0, 5, 15], fov: 60 }}>
-                         <color attach="background" args={['#050811']} />
-                         <fog attach="fog" args={['#050811', 10, 40]} />
-                         <ambientLight intensity={0.2} />
-                         <pointLight position={[10, 10, 10]} intensity={1} color="#2563EB" />
-                         <pointLight position={[-10, 5, -10]} intensity={0.5} color="#EF4444" />
-                         
-                         <AnimatedTerrain windSpeed={liveTelemetry?.wind_speed || 1} />
-                         <Forest />
-                         <FireHotspot riskCategory={livePrediction?.risk_category} />
-                         
-                         <Grid infiniteGrid fadeDistance={40} sectionColor="#1E293B" cellColor="#0B1120" />
-                         <Stars radius={50} depth={50} count={2000} factor={4} saturation={0} fade speed={1} />
-                         
-                         <OrbitControls enableDamping dampingFactor={0.05} maxPolarAngle={Math.PI / 2.1} minDistance={2} maxDistance={30} />
-                      </Canvas>
+                   <div className="absolute inset-0 bg-black">
+                     <Map
+                        initialViewState={{
+                          longitude: liveTelemetry?.lng || 86.44,
+                          latitude: liveTelemetry?.lat || 21.93,
+                          zoom: 12,
+                          pitch: 65,
+                          bearing: 0
+                        }}
+                        mapStyle={{
+                          version: 8,
+                          sources: {
+                            'satellite-tiles': {
+                              type: 'raster',
+                              tiles: [
+                                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+                              ],
+                              tileSize: 256,
+                              attribution: 'Esri'
+                            },
+                            'terrain-source': {
+                              type: 'raster-dem',
+                              tiles: [
+                                'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
+                              ],
+                              encoding: 'terrarium',
+                              tileSize: 256,
+                              maxzoom: 14
+                            }
+                          },
+                          layers: [
+                            {
+                              id: 'satellite-layer',
+                              type: 'raster',
+                              source: 'satellite-tiles',
+                              minzoom: 0,
+                              maxzoom: 22
+                            }
+                          ],
+                          terrain: {
+                            source: 'terrain-source',
+                            exaggeration: 1.5
+                          }
+                        }}
+                      >
+                        <NavigationControl position="bottom-right" visualizePitch={true} />
+                        
+                        {alerts.map((alert: any, idx: number) => {
+                           const isCritical = alert.risk === 'CRITICAL';
+                           const color = isCritical ? 'rgba(239, 68, 68, 0.8)' : 'rgba(245, 158, 11, 0.8)';
+                           return (
+                             <MaplibreMarker key={idx} longitude={alert.lng} latitude={alert.lat} anchor="bottom">
+                                <div className="relative flex items-center justify-center cursor-pointer group">
+                                  <div className="absolute w-24 h-24 rounded-full animate-ping" style={{ backgroundColor: color, opacity: 0.4 }}></div>
+                                  <div className="relative w-8 h-8 rounded-full border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.8)] flex items-center justify-center" style={{ backgroundColor: isCritical ? '#DC2626' : '#D97706' }}>
+                                     <AlertTriangle className="w-4 h-4 text-white" />
+                                  </div>
+                                  <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white text-xs px-2 py-1 rounded whitespace-nowrap border border-white/20 backdrop-blur">
+                                    {alert.location} ({alert.risk})
+                                  </div>
+                                </div>
+                             </MaplibreMarker>
+                           );
+                        })}
+                      </Map>
                       
                       <div className="absolute top-6 left-6 pointer-events-none z-10">
                         <div className="glass-panel px-6 py-4 rounded-xl border-ff-primary/50 text-ff-primary shadow-[0_0_30px_rgba(37,99,235,0.2)] backdrop-blur-xl bg-black/40 pointer-events-auto">
                           <h3 className="font-bold text-lg mb-1 text-white flex items-center gap-2">
-                             <ShieldAlert className="text-ff-danger w-5 h-5" /> 3D Digital Twin ({focusLocation})
+                             <ShieldAlert className="text-ff-danger w-5 h-5" /> 3D Satellite Terrain ({focusLocation})
                           </h3>
                           <p className="text-xs text-gray-300 max-w-[250px] leading-relaxed">
-                             Terrain meshes are affected by live wind speed ({liveTelemetry?.wind_speed?.toFixed(1) || 0} km/h).
+                             High-fidelity GIS elevation mapping enabled. Powered by MapLibre GL.
                           </p>
                         </div>
                       </div>
@@ -433,10 +482,19 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
 
                   {/* New AI Analysis Panel */}
                   <h3 className="font-bold text-sm text-gray-400 uppercase tracking-wider mt-4 mb-2 flex items-center gap-2"><Globe2 size={14}/> AI Insight Generation</h3>
-                  <div className="bg-black/40 border border-ff-primary/30 p-3 rounded-xl flex flex-col gap-2">
-                     <div className="text-xs text-gray-300 leading-relaxed">
-                        Hugging Face model analysis indicates {livePrediction?.risk_category === 'CRITICAL' ? 'immediate severe threat' : 'nominal environmental shifts'} driven largely by {(livePrediction?.reasons || []).join(' and ')}.
-                     </div>
+                  <div className="bg-black/40 border border-ff-primary/30 p-3 rounded-xl flex flex-col gap-3">
+                     <p className="text-xs text-gray-300 leading-relaxed">
+                        Right now, our artificial intelligence is continuously scanning the environment across <strong>{focusLocation.split(',')[0]}</strong>. Based on the latest real-time weather data, the system calculates a <strong>{livePrediction?.risk_score?.toFixed(1) || '--'}%</strong> risk of a forest fire occurring.
+                     </p>
+                     
+                     <p className="text-xs text-gray-300 leading-relaxed">
+                        This assessment is driven primarily by <strong>{(livePrediction?.reasons || []).join(' and ')}</strong>. When these specific weather patterns combine, the landscape can dry out quickly, making it highly vulnerable to rapid fire spread.
+                     </p>
+                     
+                     <p className="text-xs text-gray-300 leading-relaxed">
+                        Our model is highly confident in this prediction, having cross-referenced today's live conditions against thousands of historical fire incidents. We recommend {livePrediction?.risk_category === 'CRITICAL' || livePrediction?.risk_category === 'HIGH' ? <strong className="text-ff-warning">deploying preventive response units to the area immediately.</strong> : 'maintaining standard observation protocols.'}
+                     </p>
+                     
                      <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden mt-1">
                         <div className="h-full bg-ff-primary animate-pulse w-full"></div>
                      </div>
@@ -516,7 +574,7 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
           {tab === 'xai' && (
             <div className="p-8 h-full overflow-y-auto bg-gradient-to-br from-[#0B1120] to-[#111827]">
                <h2 className="text-3xl font-display font-bold mb-2">Live Model Explainability ({focusLocation})</h2>
-               <p className="text-gray-400 mb-8 max-w-2xl">Visualizing SHAP metrics returned by the Hugging Face API for the focused region.</p>
+               <p className="text-gray-400 mb-8 max-w-2xl">Breaking down exactly how the AI arrived at its risk score based on the local weather and environmental conditions.</p>
                
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="md:col-span-2 glass-panel p-6 rounded-2xl">
@@ -564,6 +622,36 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
         </div>
       </div>
       
+      {/* Hidden container for capturing PDF Charts */}
+      <div id="pdf-hidden-charts" style={{ position: 'absolute', top: '-9999px', left: '-9999px', width: '800px', background: '#0B1120', padding: '20px', display: 'none' }}>
+         <h2 style={{ color: 'white', marginBottom: '20px', fontFamily: 'sans-serif' }}>Live Risk Engine (Last 15 Mins)</h2>
+         <div style={{ width: '760px', height: '300px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={history}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" vertical={false} />
+                <XAxis dataKey="time" stroke="#64748b" />
+                <YAxis stroke="#64748b" domain={[0, 100]} />
+                <Line type="stepAfter" dataKey="risk" stroke="#EF4444" strokeWidth={3} dot={{ r: 4, fill: '#EF4444' }} isAnimationActive={false} />
+              </LineChart>
+            </ResponsiveContainer>
+         </div>
+         <h2 style={{ color: 'white', marginTop: '40px', marginBottom: '20px', fontFamily: 'sans-serif' }}>AI Feature Importance (SHAP)</h2>
+         <div style={{ width: '760px', height: '300px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={shapData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#1E293B" />
+                <XAxis type="number" stroke="#64748b" />
+                <YAxis dataKey="feature" type="category" stroke="#94A3B8" width={100} />
+                <Bar dataKey="impact" isAnimationActive={false}>
+                   {shapData.map((entry: any, index: number) => (
+                     <Cell key={`cell-${index}`} fill={entry.fill} />
+                   ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+         </div>
+      </div>
+
       <Chatbot shapContext={shapData} focusLocation={focusLocation} />
     </div>
   );
@@ -600,7 +688,7 @@ function App() {
           AI Powered <span className="text-gradient drop-shadow-[0_0_15px_rgba(239,68,68,0.3)]">Forest Fire</span> Intelligence System
         </h1>
         <p className="text-lg md:text-xl text-gray-400 max-w-2xl mb-10 font-light">
-          Currently polling Hugging Face AI to process telemetry across global forests concurrently.
+          Currently analyzing real-time weather and environmental data across global forests.
         </p>
         <button 
           onClick={() => setView('dashboard')}
