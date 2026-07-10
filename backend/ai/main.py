@@ -125,10 +125,10 @@ class ChatResponse(BaseModel):
 @app.post("/chat", response_model=ChatResponse)
 def chat(data: ChatRequest):
     """
-    Conversational endpoint for the IGNIS chatbot.
+    Conversational endpoint for the AGNIDRISHTI chatbot.
     """
     system_prompt = (
-        "You are IGNIS.AI, an expert forest fire risk assistant. "
+        "You are AGNIDRISHTI, an expert forest fire risk assistant. "
         "Your ONLY purpose is to answer questions related to forest fires, weather conditions, risk telemetry, and the current monitoring location. "
         "If a user asks a general question unrelated to forest fires or this project, you MUST politely refuse to answer and redirect them to fire risk topics. "
         "Keep answers concise (under 3 sentences) and professional."

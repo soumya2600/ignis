@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AGNIDRISHTI</string>
+    <string name="title_activity_main">AGNIDRISHTI</string>
+    <string name="package_name">org.agnidrishti.app</string>
+    <string name="custom_url_scheme">org.agnidrishti.app</string>
+</resources>

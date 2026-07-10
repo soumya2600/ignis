@@ -47,4 +47,14 @@ const chat = async (req, res) => {
   }
 };
 
-module.exports = { getLatest, getByRegion, getStats, chat };
+const predictRisk = async (req, res) => {
+  try {
+    const AI_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8000';
+    const response = await axios.post(`${AI_URL}/predict-risk`, req.body, { timeout: 10000 });
+    return res.json(response.data);
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'AI Prediction failed', error: err.message });
+  }
+};
+
+module.exports = { getLatest, getByRegion, getStats, chat, predictRisk };

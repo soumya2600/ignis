@@ -1,6 +1,6 @@
-# IGNIS.AI - Forest Fire Risk Telemetry Dashboard
+# AGNIDRISHTI - Forest Fire Risk Telemetry Dashboard
 
-IGNIS.AI is an advanced, full-stack predictive dashboard designed to monitor and assess forest fire risks globally. It integrates live weather telemetry, real-time alerts, and a 3D Digital Twin visualization, powered by an AI prediction service.
+AGNIDRISHTI is an advanced, full-stack predictive dashboard designed to monitor and assess forest fire risks globally. It integrates live weather telemetry, real-time alerts, and a 3D Digital Twin visualization, powered by an AI prediction service.
 
 ## 🌟 Key Features
 
@@ -35,8 +35,8 @@ IGNIS.AI is an advanced, full-stack predictive dashboard designed to monitor and
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/soumya2600/ignis.git
-   cd ignis
+   git clone https://github.com/soumya2600/agnidrishti.git
+   cd agnidrishti
    ```
 
 2. **Setup Frontend**

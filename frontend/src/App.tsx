@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Popup, Circle, useMap } from 'react-leaflet';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
-import { ShieldAlert, Wind, ThermometerSun, Droplets, Map as MapIcon, Box, ArrowRight, Activity, AlertTriangle, Info, Globe2, Sun, Waves, Sprout } from 'lucide-react';
+import { ShieldAlert, Wind, ThermometerSun, Droplets, Map as MapIcon, Box, ArrowRight, Activity, AlertTriangle, Info, Globe2, Sun, Waves, Sprout, Download, FlaskConical } from 'lucide-react';
 import Map, { Marker as MaplibreMarker, NavigationControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import jsPDF from 'jspdf';
@@ -10,7 +10,7 @@ import html2canvas from 'html2canvas';
 import { io } from 'socket.io-client';
 import FireAnimation from './components/FireAnimation';
 
-const socket = io('http://localhost:5000');
+const socket = io('http://172.22.2.126:5000');
 
 // Component to dynamically change Map center when focus changes
 const MapUpdater = ({ lat, lng }: { lat: number, lng: number }) => {
@@ -25,7 +25,7 @@ const MapUpdater = ({ lat, lng }: { lat: number, lng: number }) => {
 const Chatbot = ({ shapContext, focusLocation }: { shapContext: any, focusLocation: string }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { text: "Hello! I am IGNIS.AI. How can I assist you with fire risk analysis today?", sender: "ai" }
+    { text: "Hello! I am AGNIDRISHTI. How can I assist you with fire risk analysis today?", sender: "ai" }
   ]);
   const [input, setInput] = useState("");
 
@@ -42,7 +42,7 @@ const Chatbot = ({ shapContext, focusLocation }: { shapContext: any, focusLocati
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/predictions/chat', {
+      const response = await fetch('http://172.22.2.126:5000/api/predictions/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -65,7 +65,7 @@ const Chatbot = ({ shapContext, focusLocation }: { shapContext: any, focusLocati
           <div className="bg-ff-primary/20 p-4 border-b border-white/10 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-ff-success animate-pulse"></div>
-              <span className="font-semibold text-sm">IGNIS Assistant (Live)</span>
+              <span className="font-semibold text-sm">AGNIDRISHTI Assistant (Live)</span>
             </div>
             <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-white">✕</button>
           </div>
@@ -108,12 +108,45 @@ const Chatbot = ({ shapContext, focusLocation }: { shapContext: any, focusLocati
 // --- Dashboard Component ---
 const Dashboard = ({ onBack }: { onBack: () => void }) => {
   const [mode, setMode] = useState<'2d' | '3d'>('3d');
-  const [tab, setTab] = useState<'map' | 'analytics' | 'alerts' | 'xai'>('map');
+  const [tab, setTab] = useState<'map' | 'analytics' | 'alerts' | 'xai' | 'sandbox'>('map');
   const [focusLocation, setFocusLocation] = useState<string>('Similipal Forest, India');
   
   const [globalData, setGlobalData] = useState<any>(null);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+
+  const [sandboxData, setSandboxData] = useState({
+    temperature: 35.0,
+    humidity: 20.0,
+    rainfall: 0.0,
+    wind_speed: 25.0,
+    wind_direction: "NW",
+    ndvi: 0.3,
+    elevation: 500.0,
+    soil_moisture: 30.0,
+    solar_radiation: 800.0,
+    drought_index: 8.0,
+    location_name: "Test Region"
+  });
+  const [sandboxResult, setSandboxResult] = useState<any>(null);
+  const [isPredicting, setIsPredicting] = useState(false);
+
+  const handlePredict = async () => {
+    setIsPredicting(true);
+    try {
+      const response = await fetch('http://172.22.2.126:5000/api/predictions/predict-risk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sandboxData)
+      });
+      const data = await response.json();
+      setSandboxResult(data);
+    } catch (err) {
+      console.error(err);
+    }
+    setIsPredicting(false);
+  };
+
 
   useEffect(() => {
     socket.on('connect', () => setIsConnected(true));
@@ -157,7 +190,7 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(28);
     doc.setFont("helvetica", "bold");
-    doc.text("IGNIS.AI", 14, 22);
+    doc.text("AGNIDRISHTI", 14, 22);
     
     doc.setFontSize(14);
     doc.setFont("helvetica", "normal");
@@ -263,10 +296,10 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
       doc.setPage(i);
       doc.setFontSize(9);
       doc.setTextColor(150);
-      doc.text(`IGNIS.AI Confidential Report - Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
+      doc.text(`AGNIDRISHTI Confidential Report - Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
     }
 
-    doc.save(`IGNIS_Report_${focusLocation.split(',')[0].replace(/[^a-z0-9]/gi, '_')}.pdf`);
+    doc.save(`AGNIDRISHTI_Report_${focusLocation.split(',')[0].replace(/[^a-z0-9]/gi, '_')}.pdf`);
   };
 
   const jumpToLocation = (locName: string) => {
@@ -283,7 +316,7 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
             <div className="w-6 h-6 rounded bg-gradient-to-br from-ff-danger to-ff-warning flex items-center justify-center shadow-[0_0_15px_#EF444455]">
                <ShieldAlert size={14} className="text-white" />
             </div>
-            <span className="font-display font-bold text-lg tracking-wide">IGNIS<span className="text-ff-primary">.AI</span></span>
+            <span className="font-display font-bold text-lg tracking-wide">AGNIDRISHTI<span className="text-ff-primary">.AI</span></span>
           </div>
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-ff-success animate-pulse' : 'bg-ff-danger'}`} title={isConnected ? 'Connected to AI Stream' : 'Disconnected'}></div>
         </div>
@@ -298,9 +331,14 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
           <div onClick={() => setTab('alerts')} className={`p-3 rounded-lg cursor-pointer text-sm font-medium flex items-center gap-2 transition-all ${tab === 'alerts' ? 'bg-ff-primary/10 text-ff-primary border border-ff-primary/20 shadow-[0_0_10px_#2563EB33]' : 'text-gray-400 hover:bg-white/5'}`}>
              <AlertTriangle size={16} /> Global Alerts Center
           </div>
+
           <div onClick={() => setTab('xai')} className={`p-3 rounded-lg cursor-pointer text-sm font-medium flex items-center gap-2 transition-all ${tab === 'xai' ? 'bg-ff-primary/10 text-ff-primary border border-ff-primary/20 shadow-[0_0_10px_#2563EB33]' : 'text-gray-400 hover:bg-white/5'}`}>
              <Box size={16} /> XAI Explainability
           </div>
+          <div onClick={() => setTab('sandbox')} className={`p-3 rounded-lg cursor-pointer text-sm font-medium flex items-center gap-2 transition-all ${tab === 'sandbox' ? 'bg-ff-primary/10 text-ff-primary border border-ff-primary/20 shadow-[0_0_10px_#2563EB33]' : 'text-gray-400 hover:bg-white/5'}`}>
+             <FlaskConical size={16} /> Data Sandbox
+          </div>
+
         </div>
         
         <button onClick={onBack} className="mt-auto text-sm text-gray-500 hover:text-white flex items-center gap-2 transition-colors">
@@ -314,7 +352,7 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
         <div className="h-16 glass-panel border-x-0 border-t-0 flex items-center justify-between px-6 shrink-0">
           <div className="flex items-center gap-4">
              <h2 className="font-bold text-xl text-gray-100 capitalize">
-               {tab === 'map' ? 'Live Telemetry' : tab === 'xai' ? 'Explainable AI' : tab}
+               {tab === 'map' ? 'Live Telemetry' : tab === 'xai' ? 'Explainable AI' : tab === 'sandbox' ? 'Data Sandbox' : tab}
              </h2>
              <div className="glass-panel px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 text-ff-primary border-ff-primary/30 ml-4 animate-in fade-in">
                <Globe2 size={14} /> Focus: {focusLocation}
@@ -628,6 +666,68 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
             </div>
           )}
 
+
+          {/* TAB: SANDBOX */}
+          {tab === 'sandbox' && (
+            <div className="p-8 h-full overflow-y-auto bg-gradient-to-br from-ff-bg to-ff-card text-white">
+               <h2 className="text-3xl font-display font-bold mb-2">AI Data Sandbox</h2>
+               <p className="text-gray-400 mb-8 max-w-2xl">Manually tweak environmental variables to test how the AI predicts fire risk under different hypothetical scenarios.</p>
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="glass-panel p-6 rounded-2xl flex flex-col gap-4">
+                     <h3 className="font-bold text-gray-300 flex items-center gap-2"><FlaskConical size={18} className="text-ff-primary"/> Input Parameters</h3>
+                     <div className="grid grid-cols-2 gap-4">
+                        {Object.entries(sandboxData).map(([key, value]) => {
+                           if (key === 'wind_direction' || key === 'location_name') return null;
+                           return (
+                             <div key={key} className="flex flex-col gap-1">
+                               <label className="text-xs text-gray-400 capitalize">{key.replace('_', ' ')}</label>
+                               <input 
+                                 type="number" 
+                                 value={value as number}
+                                 onChange={(e) => setSandboxData({...sandboxData, [key]: parseFloat(e.target.value) || 0})}
+                                 className="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-ff-primary"
+                               />
+                             </div>
+                           )
+                        })}
+                     </div>
+                     <button onClick={handlePredict} disabled={isPredicting} className="mt-4 w-full glass-button py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+                        {isPredicting ? 'Running Prediction...' : 'Test Risk'}
+                     </button>
+                  </div>
+                  
+                  <div className="glass-panel p-6 rounded-2xl flex flex-col gap-4">
+                     <h3 className="font-bold text-gray-300 flex items-center gap-2"><Activity size={18} className="text-ff-warning"/> AI Result</h3>
+                     {sandboxResult ? (
+                       <div className="flex flex-col gap-4 animate-in fade-in">
+                         <div className="bg-black/30 border border-white/10 p-4 rounded-xl flex flex-col gap-1">
+                            <div className="text-xs text-gray-400">Predicted Risk Score</div>
+                            <div className={`text-3xl font-bold ${sandboxResult.risk_category === 'CRITICAL' ? 'text-ff-danger' : sandboxResult.risk_category === 'HIGH' ? 'text-ff-warning' : 'text-ff-success'}`}>
+                               {sandboxResult.risk_score}% ({sandboxResult.risk_category})
+                            </div>
+                         </div>
+                         <div className="bg-black/30 border border-white/10 p-4 rounded-xl flex flex-col gap-1">
+                            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Model Reasoning:</div>
+                            <ul className="text-sm text-gray-300 flex flex-col gap-2">
+                               {sandboxResult.reasons ? sandboxResult.reasons.map((reason: string, i: number) => (
+                                 <li key={i} className="flex items-start gap-2"><div className="mt-1 w-1.5 h-1.5 rounded-full bg-ff-primary shrink-0"></div> {reason}</li>
+                               )) : (
+                                 <li className="text-ff-danger">Error: Could not retrieve AI reasoning.</li>
+                               )}
+                            </ul>
+                         </div>
+                       </div>
+                     ) : (
+                       <div className="flex-1 flex items-center justify-center text-gray-500 text-sm h-48 border border-dashed border-white/10 rounded-xl">
+                          Run a prediction to see results here.
+                       </div>
+                     )}
+                  </div>
+               </div>
+            </div>
+          )}
+
           {/* TAB: XAI EXPLAINABILITY */}
           {tab === 'xai' && (
             <div className="p-8 h-full overflow-y-auto bg-gradient-to-br from-ff-bg to-ff-card">
@@ -717,6 +817,26 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
 
 function App() {
   const [view, setView] = useState<'landing' | 'dashboard'>('landing');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
+
   if (view === 'dashboard') return <Dashboard onBack={() => setView('landing')} />;
 
   return (
@@ -732,7 +852,7 @@ function App() {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-ff-danger to-ff-warning flex items-center justify-center shadow-[0_0_20px_#EF444488]">
              <ShieldAlert className="text-white w-6 h-6" />
           </div>
-          <span className="font-display font-bold text-2xl tracking-wide text-white">IGNIS<span className="text-ff-primary">.AI</span></span>
+          <span className="font-display font-bold text-2xl tracking-wide text-white">AGNIDRISHTI<span className="text-ff-primary">.AI</span></span>
         </div>
         <div className="flex gap-4">
           <button className="glass-button px-6 py-2 rounded-full text-sm font-medium text-white" onClick={() => setView('dashboard')}>Enter Live Command Center</button>
@@ -757,6 +877,21 @@ function App() {
           <ArrowRight className="w-5 h-5" />
         </button>
       </main>
+
+      {/* PWA Install Button */}
+      <button 
+        onClick={() => {
+          if (deferredPrompt) {
+            handleInstallClick();
+          } else {
+            alert("Your browser currently doesn't support the automatic install prompt, or you've already installed the app. Look for the install icon in your browser's address bar!");
+          }
+        }}
+        className="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-500 to-emerald-800 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.5)] hover:scale-110 transition-transform cursor-pointer border border-white/40"
+        title="Download App"
+      >
+        <Download className="w-6 h-6 text-white drop-shadow-md" />
+      </button>
     </div>
   );
 }

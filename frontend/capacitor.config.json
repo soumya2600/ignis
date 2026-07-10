@@ -1,0 +1,6 @@
+{
+  "appId": "org.agnidrishti.app",
+  "appName": "AGNIDRISHTI",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

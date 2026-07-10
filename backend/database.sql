@@ -1,5 +1,5 @@
 -- ============================================================
--- IGNIS.AI — Production-Ready Supabase SQL Schema
+-- AGNIDRISHTI — Production-Ready Supabase SQL Schema
 -- Run this directly in: Supabase Dashboard → SQL Editor → New Query
 -- Compatible with Supabase PostgreSQL (No ORM required)
 -- ============================================================

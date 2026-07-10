@@ -1,5 +1,5 @@
 -- ============================================================
--- IGNIS.AI — Supabase SQL Schema
+-- AGNIDRISHTI — Supabase SQL Schema
 -- Run this in: Supabase Dashboard → SQL Editor → New Query
 -- ============================================================
 

@@ -232,7 +232,7 @@ const { checkWeatherAPIHealth } = require('./services/weather.service');
 
 async function runStartupChecks() {
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('  🔥 IGNIS.AI Backend — Startup Verification');
+  console.log('  🔥 AGNIDRISHTI Backend — Startup Verification');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
   const icon = (ok) => (ok ? '  ✓' : '  ✗');
