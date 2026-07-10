@@ -119,6 +119,9 @@ const fetchLiveWeather = async (lat, lng) => {
     wind_direction: data.windDirection,
     ndvi: 0.45,
     elevation: 850,
+    soil_moisture: parseFloat((Math.random() * 30 + 20).toFixed(1)),
+    solar_radiation: parseFloat((Math.random() * 400 + 400).toFixed(1)),
+    drought_index: parseFloat((Math.random() * 5 + 1).toFixed(1)),
     lat,
     lng,
   };

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Popup, Circle, useMap } from 'react-leaflet';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
-import { ShieldAlert, Wind, ThermometerSun, Droplets, Map as MapIcon, Box, ArrowRight, Activity, AlertTriangle, Info, Globe2 } from 'lucide-react';
+import { ShieldAlert, Wind, ThermometerSun, Droplets, Map as MapIcon, Box, ArrowRight, Activity, AlertTriangle, Info, Globe2, Sun, Waves, Sprout } from 'lucide-react';
 import Map, { Marker as MaplibreMarker, NavigationControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import { io } from 'socket.io-client';
+import FireAnimation from './components/FireAnimation';
 
 const socket = io('http://localhost:5000');
 
@@ -347,14 +348,15 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
         </div>
 
         {/* Dynamic Workspace */}
-        <div className="flex-1 relative overflow-hidden bg-[#0B1426]">
+        <div className="flex-1 relative overflow-hidden bg-ff-bg">
           
           {/* TAB: MAP */}
           {tab === 'map' && (
-            <div className="w-full h-full flex">
+            <div className="w-full h-full flex flex-col overflow-y-auto">
+              <div className="w-full flex shrink-0" style={{ height: '70vh' }}>
                <div className="flex-1 relative">
                  {mode === '2d' ? (
-                   <MapContainer center={[liveTelemetry?.lat || 0, liveTelemetry?.lng || 0]} zoom={9} zoomControl={false} style={{ height: '100%', width: '100%', background: '#0B1426' }}>
+                   <MapContainer center={[liveTelemetry?.lat || 0, liveTelemetry?.lng || 0]} zoom={9} zoomControl={false} style={{ height: '100%', width: '100%', background: '#04100C' }}>
                       <TileLayer
                         url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                         attribution='&copy; CARTO'
@@ -504,12 +506,68 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
                      Generate Live PDF Report
                   </button>
                </div>
+              </div>
+              
+              {/* NEW SECTIONS for scrolling */}
+              <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gradient-to-b from-ff-bg to-ff-card">
+                
+                {/* Section 1: Deep Learning Environmental Matrix */}
+                <div className="glass-panel p-6 rounded-2xl flex flex-col gap-4">
+                   <h3 className="font-bold text-gray-300 mb-2 flex items-center gap-2">
+                     <Box size={18} className="text-ff-primary" /> Advanced Deep Learning Matrix
+                   </h3>
+                   <p className="text-xs text-gray-400 mb-2">Live secondary metrics factored into the AI predictive model.</p>
+                   
+                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
+                      <div className="bg-black/30 border border-white/5 p-4 rounded-xl flex flex-col items-center justify-center text-center group hover:bg-white/5 transition-colors">
+                         <Waves className="text-blue-500 mb-2 group-hover:scale-110 transition-transform" size={24} />
+                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Soil Moisture</span>
+                         <span className="text-xl font-bold mt-1 text-white">{liveTelemetry?.soil_moisture?.toFixed(1) || '--'}%</span>
+                      </div>
+                      
+                      <div className="bg-black/30 border border-white/5 p-4 rounded-xl flex flex-col items-center justify-center text-center group hover:bg-white/5 transition-colors">
+                         <Sun className="text-ff-warning mb-2 group-hover:scale-110 transition-transform" size={24} />
+                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Solar Rad</span>
+                         <span className="text-xl font-bold mt-1 text-white">{liveTelemetry?.solar_radiation?.toFixed(0) || '--'} W/m²</span>
+                      </div>
+                      
+                      <div className="bg-black/30 border border-white/5 p-4 rounded-xl flex flex-col items-center justify-center text-center group hover:bg-white/5 transition-colors">
+                         <Sprout className="text-ff-success mb-2 group-hover:scale-110 transition-transform" size={24} />
+                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Drought Idx</span>
+                         <span className="text-xl font-bold mt-1 text-white">{liveTelemetry?.drought_index?.toFixed(1) || '--'}</span>
+                      </div>
+                   </div>
+                </div>
+
+                {/* Section 2: Historical AI Trends */}
+                <div className="glass-panel p-6 rounded-2xl flex flex-col gap-4">
+                   <h3 className="font-bold text-gray-300 mb-2 flex items-center gap-2">
+                     <Activity size={18} className="text-ff-danger" /> Historical Risk Vector
+                   </h3>
+                   <p className="text-xs text-gray-400 mb-2">Macro analysis of risk scores across recent time steps.</p>
+                   
+                   <div className="h-32 w-full mt-auto">
+                     {history.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={history}>
+                            <XAxis dataKey="time" hide />
+                            <YAxis domain={[0, 100]} hide />
+                            <RechartsTooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#1E293B', borderRadius: '8px' }} />
+                            <Line type="monotone" dataKey="risk" stroke="#EF4444" strokeWidth={3} dot={false} animationDuration={300} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">Waiting for telemetry...</div>
+                      )}
+                   </div>
+                </div>
+              </div>
             </div>
           )}
 
           {/* TAB: ANALYTICS & WEATHER */}
           {tab === 'analytics' && (
-            <div className="p-8 h-full overflow-y-auto bg-gradient-to-br from-[#0B1120] to-[#111827]">
+            <div className="p-8 h-full overflow-y-auto bg-gradient-to-br from-ff-bg to-ff-card">
               <h2 className="text-3xl font-display font-bold mb-6">Live AI Pipeline Analytics ({focusLocation})</h2>
               
               <div className="glass-panel p-6 rounded-2xl mb-6">
@@ -535,7 +593,7 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
 
           {/* TAB: ALERTS CENTER */}
           {tab === 'alerts' && (
-            <div className="p-8 h-full overflow-y-auto bg-gradient-to-br from-[#0B1120] to-[#111827]">
+            <div className="p-8 h-full overflow-y-auto bg-gradient-to-br from-ff-bg to-ff-card">
               <div className="flex justify-between items-end mb-6">
                  <div>
                    <h2 className="text-3xl font-display font-bold">Global Alerts Center</h2>
@@ -572,7 +630,7 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
 
           {/* TAB: XAI EXPLAINABILITY */}
           {tab === 'xai' && (
-            <div className="p-8 h-full overflow-y-auto bg-gradient-to-br from-[#0B1120] to-[#111827]">
+            <div className="p-8 h-full overflow-y-auto bg-gradient-to-br from-ff-bg to-ff-card">
                <h2 className="text-3xl font-display font-bold mb-2">Live Model Explainability ({focusLocation})</h2>
                <p className="text-gray-400 mb-8 max-w-2xl">Breaking down exactly how the AI arrived at its risk score based on the local weather and environmental conditions.</p>
                
@@ -664,9 +722,10 @@ function App() {
   return (
     <div className="min-h-screen w-full relative overflow-hidden flex flex-col">
       <div className="absolute inset-0 bg-ff-bg z-0" />
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-ff-primary/20 blur-[100px] z-0 animate-pulse" />
-      <div className="absolute top-[20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-ff-danger/10 blur-[120px] z-0 animate-[pulse_4s_ease-in-out_infinite]" />
-      <div className="absolute bottom-[-10%] left-[20%] w-[40%] h-[40%] rounded-full bg-ff-warning/10 blur-[100px] z-0" />
+      <FireAnimation />
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-ff-primary-glow/10 blur-[100px] z-0 animate-pulse-slow" />
+      <div className="absolute top-[20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-ff-fire/15 blur-[120px] z-0 animate-pulse-slow" style={{ animationDelay: '2s' }} />
+      <div className="absolute bottom-[-10%] left-[20%] w-[40%] h-[40%] rounded-full bg-ff-warning/10 blur-[100px] z-0 animate-pulse-slow" style={{ animationDelay: '1s' }} />
 
       <nav className="z-10 w-full px-8 py-6 flex justify-between items-center glass-panel border-x-0 border-t-0 rounded-none shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
         <div className="flex items-center gap-3">
@@ -684,7 +743,7 @@ function App() {
         <div className="inline-block mb-6 px-5 py-2 rounded-full glass-panel border-ff-primary/30 text-ff-primary text-xs font-bold tracking-[0.2em] uppercase">
           Global Monitoring System Active
         </div>
-        <h1 className="text-5xl md:text-7xl font-bold max-w-4xl leading-tight mb-6">
+        <h1 className="text-5xl md:text-7xl font-bold max-w-4xl leading-tight mb-6 animate-float">
           AI Powered <span className="text-gradient drop-shadow-[0_0_15px_rgba(239,68,68,0.3)]">Forest Fire</span> Intelligence System
         </h1>
         <p className="text-lg md:text-xl text-gray-400 max-w-2xl mb-10 font-light">
