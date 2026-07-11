@@ -16,7 +16,11 @@
 
 @layer utilities {
   .glass-panel {
-    @apply bg-ff-card/60 backdrop-blur-xl backdrop-saturate-150 border border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.5)];
+    @apply bg-gradient-to-br from-ff-card/80 to-[#040C09]/90 backdrop-blur-xl backdrop-saturate-150 border border-white/5 border-t-white/20 border-l-white/20 shadow-[8px_12px_32px_rgba(0,0,0,0.7),inset_0_1px_2px_rgba(255,255,255,0.1)];
+  }
+
+  .glass-card {
+    @apply bg-gradient-to-br from-black/40 to-black/60 backdrop-blur-md backdrop-saturate-150 border border-white/10 border-t-white/20 shadow-[4px_6px_16px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.1)];
   }
   
   .glass-button {

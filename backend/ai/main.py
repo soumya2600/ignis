@@ -134,26 +134,33 @@ def chat(data: ChatRequest):
         "Keep answers concise (under 3 sentences) and professional."
     )
 
-    API_URL = "https://text.pollinations.ai/"
-    payload = {
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Location: {data.location}. Context: {data.context}. Question: {data.message}"}
-        ]
-    }
-
     try:
-        response = requests.post(API_URL, json=payload, timeout=15)
+        import urllib.parse
+        full_prompt = f"{system_prompt}\nLocation: {data.location}. Context: {data.context}. Question: {data.message}"
+        encoded_prompt = urllib.parse.quote(full_prompt)
+        API_URL = f"https://text.pollinations.ai/prompt/{encoded_prompt}"
+        
+        response = requests.get(API_URL, timeout=15)
         
         if response.status_code == 200:
             reply = response.text.strip()
             if reply:
                 return {"reply": reply}
-            else:
-                return {"reply": "I'm analyzing the data but couldn't generate a response."}
+            return {"reply": "I'm analyzing the data but couldn't generate a response."}
         else:
-            return {"reply": f"[AI Error]: API returned status {response.status_code}"}
+            raise requests.exceptions.RequestException("API returned non-200 status")
     except requests.exceptions.Timeout:
-        return {"reply": "[AI Error]: The model is taking too long to respond. Please try again in a few seconds."}
+        return {"reply": "[AI Error]: The AI model is taking too long to respond. Please try again in a few seconds."}
+    except requests.exceptions.RequestException as e:
+        # Fallback offline logic if API is blocked by ISP/DNS or returns 500
+        msg = data.message.lower()
+        if "fire" in msg or "forest" in msg:
+            return {"reply": f"(Offline Fallback): If you spot a forest fire in {data.location}, immediately evacuate the area, call local emergency services, and do not attempt to put it out yourself. The current AI risk context shows: {data.context}"}
+        elif "risk" in msg or "status" in msg:
+            return {"reply": f"(Offline Fallback): The current AI context for {data.location} is: {data.context}. Please refer to the dashboard charts for more detailed telemetry."}
+        elif "temperature" in msg or "weather" in msg:
+            return {"reply": f"(Offline Fallback): We are currently monitoring {data.location}. Please check the live sensor readings on the left panel for real-time weather metrics."}
+        else:
+            return {"reply": f"(Offline Fallback): I cannot connect to the primary AI server right now due to a network restriction on your computer. However, I am still monitoring {data.location}. {data.context}"}
     except Exception as e:
         return {"reply": f"[AI Error]: {str(e)}"}

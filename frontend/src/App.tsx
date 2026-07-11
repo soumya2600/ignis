@@ -10,7 +10,7 @@ import html2canvas from 'html2canvas';
 import { io } from 'socket.io-client';
 import FireAnimation from './components/FireAnimation';
 
-const socket = io('http://172.22.2.126:5000');
+const socket = io('http://localhost:5000');
 
 // Component to dynamically change Map center when focus changes
 const MapUpdater = ({ lat, lng }: { lat: number, lng: number }) => {
@@ -42,7 +42,7 @@ const Chatbot = ({ shapContext, focusLocation }: { shapContext: any, focusLocati
     }
 
     try {
-      const response = await fetch('http://172.22.2.126:5000/api/predictions/chat', {
+      const response = await fetch('http://localhost:5000/api/predictions/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -85,7 +85,7 @@ const Chatbot = ({ shapContext, focusLocation }: { shapContext: any, focusLocati
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Ask about live risks..."
-              className="flex-1 bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-ff-primary"
+              className="flex-1 glass-card rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-ff-primary"
             />
             <button onClick={handleSend} className="glass-button px-3 py-2 rounded-lg flex items-center justify-center">
               <ArrowRight className="w-4 h-4" />
@@ -134,7 +134,7 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
   const handlePredict = async () => {
     setIsPredicting(true);
     try {
-      const response = await fetch('http://172.22.2.126:5000/api/predictions/predict-risk', {
+      const response = await fetch('http://localhost:5000/api/predictions/predict-risk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(sandboxData)
@@ -238,17 +238,19 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
     doc.text(splitText, 14, yPos);
     yPos += splitText.length * 6 + 10;
 
-    // Global Hazards Table
+    // Local Hazards Table
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
-    doc.text("Global Hazards Pipeline", 14, yPos);
+    doc.text(`Local Anomalies (${focusLocation})`, 14, yPos);
     
-    if (alerts.length === 0) {
+    const localAlerts = alerts.filter((a: any) => a.location === focusLocation);
+
+    if (localAlerts.length === 0) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
-      doc.text("No critical anomalies detected globally.", 14, yPos + 8);
+      doc.text("No critical anomalies detected for this region.", 14, yPos + 8);
     } else {
-      const hazardBody = alerts.map((a: any) => [
+      const hazardBody = localAlerts.map((a: any) => [
         a.location,
         a.risk,
         a.time,
@@ -498,22 +500,22 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
                <div className="w-80 glass-panel border-y-0 border-r-0 h-full p-4 flex flex-col gap-4 overflow-y-auto shrink-0 z-10">
                   <h3 className="font-bold text-sm text-gray-400 uppercase tracking-wider mb-2">Live AI Sensors</h3>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-black/30 border border-white/10 rounded-xl p-3 flex flex-col gap-1">
+                    <div className="glass-card rounded-xl p-3 flex flex-col gap-1">
                       <div className="flex items-center gap-2 text-ff-warning"><ThermometerSun size={14} /> <span className="text-xs font-semibold">Temp</span></div>
                       <div className="text-xl font-bold">{liveTelemetry?.temperature?.toFixed(1) || '--'}°C</div>
                     </div>
-                    <div className="bg-black/30 border border-white/10 rounded-xl p-3 flex flex-col gap-1">
+                    <div className="glass-card rounded-xl p-3 flex flex-col gap-1">
                       <div className="flex items-center gap-2 text-blue-400"><Droplets size={14} /> <span className="text-xs font-semibold">Humidity</span></div>
                       <div className="text-xl font-bold">{liveTelemetry?.humidity?.toFixed(1) || '--'}%</div>
                     </div>
-                    <div className="bg-black/30 border border-white/10 rounded-xl p-3 flex flex-col gap-1 col-span-2">
+                    <div className="glass-card rounded-xl p-3 flex flex-col gap-1 col-span-2">
                       <div className="flex items-center gap-2 text-gray-300"><Wind size={14} /> <span className="text-xs font-semibold">Wind Speed ({liveTelemetry?.wind_direction || 'NW'})</span></div>
                       <div className="text-xl font-bold">{liveTelemetry?.wind_speed?.toFixed(1) || '--'} km/h</div>
                     </div>
                   </div>
 
                   <h3 className="font-bold text-sm text-gray-400 uppercase tracking-wider mt-4 mb-2">AI Status</h3>
-                  <div className="bg-black/30 border border-white/10 p-3 rounded-xl flex flex-col gap-1">
+                  <div className="glass-card p-3 rounded-xl flex flex-col gap-1">
                      <div className="text-xs text-gray-400">Risk Prediction for {focusLocation.split(',')[0]}</div>
                      <div className={`text-2xl font-bold ${livePrediction?.risk_category === 'CRITICAL' ? 'text-ff-danger' : livePrediction?.risk_category === 'HIGH' ? 'text-ff-warning' : 'text-ff-success'}`}>
                         {livePrediction?.risk_score?.toFixed(1) || '--'}% ({livePrediction?.risk_category || 'WAITING'})
@@ -557,19 +559,19 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
                    <p className="text-xs text-gray-400 mb-2">Live secondary metrics factored into the AI predictive model.</p>
                    
                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
-                      <div className="bg-black/30 border border-white/5 p-4 rounded-xl flex flex-col items-center justify-center text-center group hover:bg-white/5 transition-colors">
+                      <div className="glass-card p-4 rounded-xl flex flex-col items-center justify-center text-center group hover:bg-white/5 transition-colors">
                          <Waves className="text-blue-500 mb-2 group-hover:scale-110 transition-transform" size={24} />
                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Soil Moisture</span>
                          <span className="text-xl font-bold mt-1 text-white">{liveTelemetry?.soil_moisture?.toFixed(1) || '--'}%</span>
                       </div>
                       
-                      <div className="bg-black/30 border border-white/5 p-4 rounded-xl flex flex-col items-center justify-center text-center group hover:bg-white/5 transition-colors">
+                      <div className="glass-card p-4 rounded-xl flex flex-col items-center justify-center text-center group hover:bg-white/5 transition-colors">
                          <Sun className="text-ff-warning mb-2 group-hover:scale-110 transition-transform" size={24} />
                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Solar Rad</span>
                          <span className="text-xl font-bold mt-1 text-white">{liveTelemetry?.solar_radiation?.toFixed(0) || '--'} W/m²</span>
                       </div>
                       
-                      <div className="bg-black/30 border border-white/5 p-4 rounded-xl flex flex-col items-center justify-center text-center group hover:bg-white/5 transition-colors">
+                      <div className="glass-card p-4 rounded-xl flex flex-col items-center justify-center text-center group hover:bg-white/5 transition-colors">
                          <Sprout className="text-ff-success mb-2 group-hover:scale-110 transition-transform" size={24} />
                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Drought Idx</span>
                          <span className="text-xl font-bold mt-1 text-white">{liveTelemetry?.drought_index?.toFixed(1) || '--'}</span>
@@ -686,7 +688,7 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
                                  type="number" 
                                  value={value as number}
                                  onChange={(e) => setSandboxData({...sandboxData, [key]: parseFloat(e.target.value) || 0})}
-                                 className="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-ff-primary"
+                                 className="glass-card rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-ff-primary"
                                />
                              </div>
                            )
@@ -701,13 +703,13 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
                      <h3 className="font-bold text-gray-300 flex items-center gap-2"><Activity size={18} className="text-ff-warning"/> AI Result</h3>
                      {sandboxResult ? (
                        <div className="flex flex-col gap-4 animate-in fade-in">
-                         <div className="bg-black/30 border border-white/10 p-4 rounded-xl flex flex-col gap-1">
+                         <div className="glass-card p-4 rounded-xl flex flex-col gap-1">
                             <div className="text-xs text-gray-400">Predicted Risk Score</div>
                             <div className={`text-3xl font-bold ${sandboxResult.risk_category === 'CRITICAL' ? 'text-ff-danger' : sandboxResult.risk_category === 'HIGH' ? 'text-ff-warning' : 'text-ff-success'}`}>
                                {sandboxResult.risk_score}% ({sandboxResult.risk_category})
                             </div>
                          </div>
-                         <div className="bg-black/30 border border-white/10 p-4 rounded-xl flex flex-col gap-1">
+                         <div className="glass-card p-4 rounded-xl flex flex-col gap-1">
                             <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Model Reasoning:</div>
                             <ul className="text-sm text-gray-300 flex flex-col gap-2">
                                {sandboxResult.reasons ? sandboxResult.reasons.map((reason: string, i: number) => (
@@ -760,7 +762,7 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
 
                   <div className="glass-panel p-6 rounded-2xl flex flex-col gap-4">
                      <h3 className="font-bold text-ff-danger flex items-center gap-2"><ShieldAlert size={18} /> Model Reasoning</h3>
-                     <div className="bg-black/30 p-4 rounded-xl border border-white/5 text-sm text-gray-300 leading-relaxed">
+                     <div className="glass-card p-4 rounded-xl text-sm text-gray-300 leading-relaxed">
                         The AI engine predicts a <span className={`font-bold ${livePrediction?.risk_category === 'CRITICAL' ? 'text-ff-danger' : 'text-ff-warning'}`}>{livePrediction?.risk_score?.toFixed(1) || '--'}%</span> risk in this sector.
                      </div>
                      <div className="flex flex-col gap-2">
@@ -781,7 +783,7 @@ const Dashboard = ({ onBack }: { onBack: () => void }) => {
       </div>
       
       {/* Hidden container for capturing PDF Charts */}
-      <div id="pdf-hidden-charts" style={{ position: 'absolute', top: '-9999px', left: '-9999px', width: '800px', background: '#0B1120', padding: '20px', display: 'none' }}>
+      <div id="pdf-hidden-charts" style={{ position: 'absolute', top: '-9999px', left: '-9999px', width: '800px', background: '#0B1120', padding: '20px' }}>
          <h2 style={{ color: 'white', marginBottom: '20px', fontFamily: 'sans-serif' }}>Live Risk Engine (Last 15 Mins)</h2>
          <div style={{ width: '760px', height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -878,20 +880,15 @@ function App() {
         </button>
       </main>
 
-      {/* PWA Install Button */}
-      <button 
-        onClick={() => {
-          if (deferredPrompt) {
-            handleInstallClick();
-          } else {
-            alert("Your browser currently doesn't support the automatic install prompt, or you've already installed the app. Look for the install icon in your browser's address bar!");
-          }
-        }}
+      {/* APK Download Button */}
+      <a 
+        href="/AGNIDRISHTI.apk"
+        download="AGNIDRISHTI.apk"
         className="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-500 to-emerald-800 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.5)] hover:scale-110 transition-transform cursor-pointer border border-white/40"
-        title="Download App"
+        title="Download APK"
       >
         <Download className="w-6 h-6 text-white drop-shadow-md" />
-      </button>
+      </a>
     </div>
   );
 }
